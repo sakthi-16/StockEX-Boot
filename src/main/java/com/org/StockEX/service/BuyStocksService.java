@@ -155,6 +155,6 @@ public class BuyStocksService {
         transactionRepo.save(transaction);
         userAccountHistoryRepo.save(history);
 
-        return ResponseEntity.ok(Map.of("message","Payment Successful, Stocks added to your Holdings."));
+        return ResponseEntity.ok(Map.of("message","Payment Successful."+"Stocks sold for "+total+"  added to your Holdings."));
     }
 }
