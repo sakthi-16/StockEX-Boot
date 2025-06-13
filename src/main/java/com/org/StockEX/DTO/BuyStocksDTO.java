@@ -22,6 +22,10 @@ public class BuyStocksDTO {
     @Min(value = 1)
     private Integer stockQuantity;
 
+    private String bankCode;
+
+    private String bankName;
+
 
     @NotBlank(message="Payment won't begin without PIN.")
     private String accountPIN;

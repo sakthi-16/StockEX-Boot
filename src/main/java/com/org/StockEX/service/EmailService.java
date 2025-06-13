@@ -18,7 +18,7 @@ public class EmailService {
 
     public void sendOtp(String toEmail, String otp) {
         SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom(fromEmail);  // ✅ This is required to avoid "can't determine local email address"
+        message.setFrom(fromEmail);  //  This is required to avoid "can't determine local email address"
         message.setTo(toEmail);
         message.setSubject("OTP Verification - StockEX");
         message.setText("Your OTP is: " + otp + "\nIt is valid for 3 minutes.");

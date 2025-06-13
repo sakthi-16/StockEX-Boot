@@ -96,7 +96,7 @@ public class AuthController {
 
 
     @PostMapping("/forgot-password")
-    public ResponseEntity<Map<String, Object>> forgotPassword(@RequestBody ForgotPasswordDTO forgotPasswordDTO) {
+    public ResponseEntity<?> forgotPassword(@RequestBody ForgotPasswordDTO forgotPasswordDTO) {
         String email = forgotPasswordDTO.getEmail();
         String result = otpService.sendOtpToUser(email);
 
@@ -144,6 +144,8 @@ public class AuthController {
 
         return ResponseEntity.ok(Map.of("message","Password reset successfully"));
     }
+
+
 
 
 

@@ -58,6 +58,7 @@ public class UpdateAccountBalanceService {
         history.setCurrentAccountBalance(currentBalance);
         history.setAmountTransacted(amount);
         history.setAmountTransactedTime(history.getCurrentIndianTime());
+        history.setTransactionType("deposit");
         history.setEmail(currentUserEmail);
 
         userAccountHistoryRepo.save(history);

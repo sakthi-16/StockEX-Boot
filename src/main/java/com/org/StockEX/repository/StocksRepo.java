@@ -10,12 +10,16 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 
 @Repository
 public interface StocksRepo extends JpaRepository<Stocks,Integer> {
 
     Optional<Stocks> findByStockName(String stockName);
+
+    @Query(value = "SELECT * FROM stocks  WHERE total_stocks <> 0",nativeQuery = true)
+    List<Stocks> getAllStocks();
 
     @Query("SELECT s.stockPrice FROM Stocks s WHERE s.stockName = :stockName")
     BigDecimal getInstantStockPrice(@Param("stockName") String stockName);

@@ -108,6 +108,7 @@ public class SellStocksService {
         accountHistory.setAmountTransacted(totalReceivable);
         accountHistory.setAmountTransactedTime(accountHistory.getCurrentIndianTime());
         accountHistory.setCurrentAccountBalance(userAccountRepo.getAccountBalance(userId));
+        accountHistory.setTransactionType("deposit");
         userAccountHistoryRepo.save(accountHistory);
 
         TransactionsHistory transactionsHistory = new TransactionsHistory();

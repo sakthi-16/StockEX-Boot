@@ -14,7 +14,7 @@ public class ShowStocksService {
 
     public List<Stocks> showStocks(){
 
-        return stocksRepo.findAll();
+        return stocksRepo.getAllStocks();
     }
 }
 

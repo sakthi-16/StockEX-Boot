@@ -71,13 +71,6 @@ public class AdminController {
         return showStocks.showStocks();
     }
 
-    @PostMapping("/logout")
-    public String logout() {
 
-        SecurityContextHolder.clearContext();
-
-
-        return "Logged out successfully";
-    }
 
 }

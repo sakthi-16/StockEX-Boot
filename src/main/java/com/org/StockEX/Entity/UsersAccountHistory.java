@@ -31,6 +31,8 @@ public class UsersAccountHistory {
 
     private String amountTransactedTime;
 
+    private String transactionType;
+
 
     public String getCurrentIndianTime() {
 

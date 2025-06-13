@@ -19,6 +19,10 @@ public class BuyStocks {
 
     private String accountPIN;
 
+    private String bankName;
+
+    private String bankCode;
+
 
 
 }

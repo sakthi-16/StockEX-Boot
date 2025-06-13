@@ -54,6 +54,7 @@ public ResponseEntity<?> withdraw(UpdateAccountBalanceDTO updateAccountBalanceDT
     history.setCurrentAccountBalance(currentBalance);
     history.setAmountTransacted(amount);
     history.setAmountTransactedTime(history.getCurrentIndianTime());
+    history.setTransactionType("withdraw");
     history.setEmail(currentUserEmail);
 
     userAccountHistoryRepo.save(history);
