@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.Map;
 
 @Service
 public class UpdateStockPriceService {
@@ -23,7 +24,7 @@ public class UpdateStockPriceService {
         int updatedRows=stocksRepo.updateStockPrice(amount,stockName);
 
         return updatedRows>0
-                        ?ResponseEntity.ok(updateStockPriceDTO.getStockName()+" Stock price updated to "+updateStockPriceDTO.getStockPrice())
-                        :ResponseEntity.badRequest().body("Something went Wrong");
+                        ?ResponseEntity.ok(Map.of("message",updateStockPriceDTO.getStockName()+" Stock price updated to "+updateStockPriceDTO.getStockPrice()))
+                        :ResponseEntity.badRequest().body(Map.of("message","Something went Wrong"));
     }
 }

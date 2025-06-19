@@ -3,6 +3,7 @@ package com.org.StockEX.controller;
 import com.org.StockEX.DTO.StocksDTO;
 import com.org.StockEX.DTO.UpdateStockPriceDTO;
 import com.org.StockEX.Entity.Stocks;
+import com.org.StockEX.repository.StocksRepo;
 import com.org.StockEX.service.AddStockService;
 import com.org.StockEX.service.ShowStocksService;
 import com.org.StockEX.service.UpdateStockPriceService;
@@ -16,6 +17,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @Slf4j
@@ -25,19 +28,27 @@ public class AdminController {
     @Autowired
     private AddStockService addStocksService;
 
+    @Autowired
+    private StocksRepo stocksRepo;
+
     @PostMapping("/addStocks")
 
     public ResponseEntity<?> addStocks(@Valid @RequestBody StocksDTO stocksDTO){
 
         log.info(String.valueOf(stocksDTO));
 
+        Optional<Stocks> stockRegistrationCheck=stocksRepo.findByStockName(stocksDTO.getStockName());
+        if(stockRegistrationCheck.isPresent()){
+            return ResponseEntity.badRequest().body(Map.of("message","Stock is already registered."));
+        }
+
         if (stocksDTO.getStocksDeclared().compareTo(BigDecimal.ZERO) == 0) {
-            return ResponseEntity.badRequest().body("Stocks declared must be greater than zero");
+            return ResponseEntity.badRequest().body(Map.of("message","Stocks declared must be greater than zero"));
         }
 
         if (stocksDTO.getTotalStocks() != null && stocksDTO.getTotalStocks() == 0)
         {
-            return ResponseEntity.badRequest().body("Total stocks must be greater than zero");
+            return ResponseEntity.badRequest().body(Map.of("message","Total stocks must be greater than zero"));
         }
 
 

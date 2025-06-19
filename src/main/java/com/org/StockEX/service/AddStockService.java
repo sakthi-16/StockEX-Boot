@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.Map;
 
 @Service
 public class AddStockService {
@@ -24,6 +25,8 @@ public class AddStockService {
     private Havings holdings;
 
     public ResponseEntity<?> addStocks(StocksDTO stocksDTO) {
+
+
 
         stocks.setStockName(stocksDTO.getStockName());
         stocks.setStocksImage(stocksDTO.getStocksImage());
@@ -40,7 +43,7 @@ public class AddStockService {
 
         stocksRepo.save(stocks);
 
-        return ResponseEntity.ok("Stock Added Successfully");
+        return ResponseEntity.ok(Map.of("message","Stock Added Successfully"));
 
     }
 

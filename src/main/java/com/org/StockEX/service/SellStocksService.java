@@ -41,6 +41,9 @@ public class SellStocksService {
     @Autowired
     Usercredentialsrepo userCredentialRepo;
 
+    @Autowired
+    private EmailService emailService;
+
 
     @Transactional
     public ResponseEntity<?> sellStocks(SellStocksDTO sellStocksDTO) {
@@ -53,6 +56,7 @@ public class SellStocksService {
 
         UsersCredentials customer = chosenUser.get();
         Long userId = customer.getUserId();
+        String customerName=customer.getUsername();
         String stockName = sellStocksDTO.getStockName();
         Integer sellQuantity = sellStocksDTO.getStockQuantity();
 
@@ -120,6 +124,15 @@ public class SellStocksService {
         transactionRepo.save(transactionsHistory);
 
         stocksRepo.updateStockQuantity(sellQuantity,stockName);
+
+        emailService.sendInvoice(
+                currentUserEmail,
+                customerName,
+                stockName,
+                sellQuantity,
+                totalReceivable
+        );
+
 
 
 
