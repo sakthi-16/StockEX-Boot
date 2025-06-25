@@ -1,9 +1,11 @@
 package com.org.StockEX.controller;
 
 import com.org.StockEX.DTO.*;
+import com.org.StockEX.Entity.UsersAccount;
 import com.org.StockEX.Entity.UsersCredentials;
 import com.org.StockEX.Security.JwtUtil;
 import com.org.StockEX.repository.OtpRepository;
+import com.org.StockEX.repository.UserAccountRepo;
 import com.org.StockEX.repository.Usercredentialsrepo;
 import com.org.StockEX.service.CreateUserService;
 import com.org.StockEX.service.OtpService;
@@ -16,6 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -28,6 +31,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("api/auth")
@@ -40,18 +44,32 @@ public class AuthController {
     @Autowired
     private JwtUtil jwtUtil;
 
+    @Autowired
+    private UserAccountRepo userAccountRepo;
+
+    @Autowired
+    private Usercredentialsrepo usercredentialsrepo;
+
 
 
 
     @CrossOrigin(origins = "http://localhost:4200", exposedHeaders = "Authorization")
     @PostMapping("/login")
-    public ResponseEntity<Map<String, String>> login(@RequestBody LoginRequestDTO loginRequestDTO, HttpServletResponse response) {
+    public ResponseEntity<Map<String, Object>> login(@RequestBody LoginRequestDTO loginRequestDTO, HttpServletResponse response) {
+
+        String email = loginRequestDTO.getEmail();
+        String password = loginRequestDTO.getPassword();
+
+        Optional<UsersCredentials> userOptional = userCredentialsRepo.findByEmail(email);
+        if (userOptional.isEmpty()) {
+            return ResponseEntity
+                    .status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Email not registered"));
+        }
+
         try {
             Authentication authentication = authManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(
-                            loginRequestDTO.getEmail(),
-                            loginRequestDTO.getPassword()
-                    )
+                    new UsernamePasswordAuthenticationToken(email, password)
             );
 
             UserDetails userDetails = (UserDetails) authentication.getPrincipal();
@@ -59,20 +77,33 @@ public class AuthController {
             String role = userDetails.getAuthorities().stream()
                     .findFirst()
                     .map(GrantedAuthority::getAuthority)
-                    .orElse("ROLE_USER"); // Default to ROLE_USER if none found
+                    .orElse("ROLE_USER");
 
             Map<String, Object> claims = Map.of("role", role);
             String token = jwtUtil.generateToken(claims, userDetails.getUsername());
 
-            response.addHeader("Authorization", "Bearer " + token);
-            return ResponseEntity.ok(Map.of("token", token));
+            Long userId = userCredentialsRepo.getUserIdByMail(userDetails.getUsername());
+            boolean isLinkedAccount = userAccountRepo.findAccountByUserId(userId).isPresent();
 
-        } catch (Exception e) {
+            response.addHeader("Authorization", "Bearer " + token);
+
+            return ResponseEntity.ok(Map.of(
+                    "token", token,
+                    "isLinkedAccount", isLinkedAccount
+            ));
+
+        } catch (BadCredentialsException e) {
             return ResponseEntity
                     .status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "Invalid email or password"));
+                    .body(Map.of("error", "Incorrect password"));
+        } catch (Exception e) {
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "An error occurred during login"));
         }
     }
+
+
 
 
     @Autowired

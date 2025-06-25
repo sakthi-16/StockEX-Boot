@@ -13,6 +13,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -94,7 +95,15 @@ public class UserController {
     private UpdateAccountBalanceService userAccountBalanceService;
 
     @PatchMapping("/deposit")
-    public ResponseEntity<?> updateAccountBalance(@RequestBody UpdateAccountBalanceDTO updateAccountBalanceDTO){
+    public ResponseEntity<?> updateAccountBalance(@Valid @RequestBody UpdateAccountBalanceDTO updateAccountBalanceDTO){
+        BigDecimal amount = updateAccountBalanceDTO.getAmount();
+
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) < 0) {
+            return ResponseEntity
+                    .badRequest()
+                    .body(Map.of("message", "Amount must be a non-negative number."));
+        }
+
 
         return userAccountBalanceService.updateAccountBalance(updateAccountBalanceDTO);
 
@@ -118,7 +127,14 @@ public class UserController {
     WithdrawService withdrawService;
 
     @PatchMapping("/withdraw")
-    public ResponseEntity<?> withdraw(@RequestBody UpdateAccountBalanceDTO updateAccountBalanceDTO){
+    public ResponseEntity<?> withdraw(@Valid @RequestBody UpdateAccountBalanceDTO updateAccountBalanceDTO){
+        BigDecimal amount = updateAccountBalanceDTO.getAmount();
+
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) < 0) {
+            return ResponseEntity
+                    .badRequest()
+                    .body(Map.of("message", "Amount must be a non-negative number."));
+        }
         return withdrawService.withdraw(updateAccountBalanceDTO);
     }
 

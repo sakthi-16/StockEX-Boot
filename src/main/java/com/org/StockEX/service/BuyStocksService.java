@@ -84,15 +84,17 @@ public class BuyStocksService {
 
         sellerOrderNo=userId+"B"+generateSellerOrderNo();
 
+        Optional<UsersAccount> buyersAccount = userAccountRepo.findAccountByUserId(userId);
+        if (buyersAccount.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("message","Bank account and PIN has not been set."));
+        }
+
         String accountPIN = userAccountRepo.findAccountPasswordByUserId(userId);
         if (!buyStocksDTO.getAccountPIN().equals(accountPIN)) {
             return ResponseEntity.badRequest().body(Map.of("message","Warning, Wrong PIN entered!"));
         }
 
-        Optional<UsersAccount> buyersAccount = userAccountRepo.findAccountByUserId(userId);
-        if (buyersAccount.isEmpty()) {
-            return ResponseEntity.badRequest().body(Map.of("message","No such user is found."));
-        }
+
 
         UsersAccount buyerAccount = buyersAccount.get();
 

@@ -46,6 +46,8 @@ public class AdminController {
             return ResponseEntity.badRequest().body(Map.of("message","Stocks declared must be greater than zero"));
         }
 
+
+
         if (stocksDTO.getTotalStocks() != null && stocksDTO.getTotalStocks() == 0)
         {
             return ResponseEntity.badRequest().body(Map.of("message","Total stocks must be greater than zero"));

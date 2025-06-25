@@ -2,6 +2,7 @@ package com.org.StockEX.service;
 
 
 import com.org.StockEX.DTO.UpdateAccountBalanceDTO;
+import com.org.StockEX.Entity.UsersAccount;
 import com.org.StockEX.Entity.UsersAccountHistory;
 import com.org.StockEX.Entity.UsersCredentials;
 import com.org.StockEX.repository.UserAccountHistoryRepo;
@@ -41,6 +42,15 @@ public ResponseEntity<?> withdraw(UpdateAccountBalanceDTO updateAccountBalanceDT
 
     UsersCredentials customer = chosenUser.get();
     Long userId = customer.getUserId();
+    Optional<UsersAccount> chosenAccount=userAccountRepo.findAccountByUserId(userId);
+    if(chosenAccount.isEmpty()){
+        return ResponseEntity.badRequest().body("Account Not found.");
+    }
+    UsersAccount userAccount=chosenAccount.get();
+
+    if(userAccount.getUserAccountBalance().compareTo(updateAccountBalanceDTO.getAmount())<0){
+        return ResponseEntity.badRequest().body(Map.of("message","Insufficient Balance"));
+    }
         if (! updateAccountBalanceDTO.getAccountPIN().equals(userAccountRepo.findAccountPasswordByUserId(userId))) {
 
         return ResponseEntity.badRequest().body(Map.of("message","Warning,Wrong PIN entered."));
