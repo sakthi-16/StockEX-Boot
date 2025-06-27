@@ -52,7 +52,6 @@ public class BuyStocksService {
     private ConfirmBuyStocksRepo confirmBuyStocksRepo;
 
 
-
     private static final String tid = "27965678";
     private static final String mid = "FPX000000054555";
     private static final String subMID = "201100000012450";
@@ -62,56 +61,52 @@ public class BuyStocksService {
     private static final int CIPHER_KEY_LEN = 256;    // Example value in bits
 
 
-
-
     @Transactional
     public ResponseEntity<?> buyStocks(BuyStocksDTO buyStocksDTO) {
 
         String sellerOrderNo;
 
 
-
         String currentUserEmail = SecurityContextHolder.getContext().getAuthentication().getName();
         Optional<UsersCredentials> chosenUser = userCredentialsRepo.findByEmail(currentUserEmail);
 
         if (chosenUser.isEmpty()) {
-            return ResponseEntity.badRequest().body(Map.of("message","Buyer Not Found"));
+            return ResponseEntity.badRequest().body(Map.of("message", "Buyer Not Found"));
         }
 
         UsersCredentials customer = chosenUser.get();
         Long userId = customer.getUserId();
-        System.out.println("\n\n"+userId+"\n\nuserId");
+        System.out.println("\n\n" + userId + "\n\nuserId");
 
-        sellerOrderNo=userId+"B"+generateSellerOrderNo();
+        sellerOrderNo = userId + "B" + generateSellerOrderNo();
 
         Optional<UsersAccount> buyersAccount = userAccountRepo.findAccountByUserId(userId);
         if (buyersAccount.isEmpty()) {
-            return ResponseEntity.badRequest().body(Map.of("message","Bank account and PIN has not been set."));
+            return ResponseEntity.badRequest().body(Map.of("message", "Bank account and PIN has not been set."));
         }
 
         String accountPIN = userAccountRepo.findAccountPasswordByUserId(userId);
         if (!buyStocksDTO.getAccountPIN().equals(accountPIN)) {
-            return ResponseEntity.badRequest().body(Map.of("message","Warning, Wrong PIN entered!"));
+            return ResponseEntity.badRequest().body(Map.of("message", "Warning, Wrong PIN entered!"));
         }
-
 
 
         UsersAccount buyerAccount = buyersAccount.get();
 
         Optional<Stocks> stocks = stocksRepo.findByStockName(buyStocksDTO.getStockName());
         if (stocks.isEmpty()) {
-            return ResponseEntity.badRequest().body(Map.of("message","Stock not found."));
+            return ResponseEntity.badRequest().body(Map.of("message", "Stock not found."));
         }
 
         Stocks stock = stocks.get();
         int availableStock = stock.getTotalStocks();
         int requestedQuantity = buyStocksDTO.getStockQuantity();
-        if ( requestedQuantity<0 ) {
-            return ResponseEntity.badRequest().body(Map.of("message","Entered value is negative.Warning not allowed option!"));
+        if (requestedQuantity < 0) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Entered value is negative.Warning not allowed option!"));
         }
 
         if (availableStock < requestedQuantity) {
-            return ResponseEntity.badRequest().body(Map.of("message","Entered quantity is larger than the available."));
+            return ResponseEntity.badRequest().body(Map.of("message", "Entered quantity is larger than the available."));
         }
 
         BigDecimal askedQuantity = BigDecimal.valueOf(requestedQuantity);
@@ -126,26 +121,26 @@ public class BuyStocksService {
 
         BigDecimal exchangeCharges = subtotal.multiply(BigDecimal.valueOf(0.0000345));
         BigDecimal gst = (brokerage.add(exchangeCharges)).multiply(BigDecimal.valueOf(0.18));
-        BigDecimal total = subtotal.add(brokerage).add(exchangeCharges).add(gst).setScale(2,RoundingMode.HALF_UP);
+        BigDecimal total = subtotal.add(brokerage).add(exchangeCharges).add(gst).setScale(2, RoundingMode.HALF_UP);
 
         System.out.println("total: " + total + " subtotal: " + subtotal);
         BigDecimal nowBalance = userAccountRepo.getAccountBalance(userId);
         System.out.println("CURRENTBALANCE: " + nowBalance);
 
-        if (nowBalance.compareTo(total) < 0 ) {
+        if (nowBalance.compareTo(total) < 0) {
 
-            return ResponseEntity.badRequest().body(Map.of("message","Insufficient Balance!"));
+            return ResponseEntity.badRequest().body(Map.of("message", "Insufficient Balance!"));
         }
 
-        double amount=total.doubleValue();
+        double amount = total.doubleValue();
         String checkSum;
-        String minifieldString= amount+"|"+sellerOrderNo+"|"+subMID;
+        String minifieldString = amount + "|" + sellerOrderNo + "|" + subMID;
 
-        checkSum=encryptPayload(minifieldString,mid,tid);
+        checkSum = encryptPayload(minifieldString, mid, tid);
         System.out.println(checkSum);
 
-        String bankName=buyStocksDTO.getBankName();
-        String bankCode=buyStocksDTO.getBankCode();
+        String bankName = buyStocksDTO.getBankName();
+        String bankCode = buyStocksDTO.getBankCode();
 
         ConfirmBuyStocksDTO confirmDTO = new ConfirmBuyStocksDTO();
         confirmDTO.setMessage("Validation successful. Please confirm payment.");
@@ -167,8 +162,7 @@ public class BuyStocksService {
         confirmDTO.setTransactionStatus("Failure");
 
 
-
-        ConfirmBuyStocks confirmBuyStocks=new ConfirmBuyStocks();
+        ConfirmBuyStocks confirmBuyStocks = new ConfirmBuyStocks();
         confirmBuyStocks.setMessage("Validation successful. Please confirm payment.");
         confirmBuyStocks.setAmountToPay(total);
         confirmBuyStocks.setSubTotal(subtotal);
@@ -186,8 +180,8 @@ public class BuyStocksService {
         confirmBuyStocks.setCheckSum(checkSum);
         confirmBuyStocks.setTransactionStatus("Failure");
 
-        System.out.println(bankName+"hello"+bankCode);
-        System.out.println("SELOLOERORDERNUMBER"+sellerOrderNo+"\n\n\n");
+        System.out.println(bankName + "hello" + bankCode);
+        System.out.println("SELOLOERORDERNUMBER" + sellerOrderNo + "\n\n\n");
 
 
         confirmBuyStocksRepo.save(confirmBuyStocks);
@@ -196,128 +190,122 @@ public class BuyStocksService {
 
         return ResponseEntity.ok(confirmDTO);
 
-}
+    }
 
-@Transactional
-public boolean confirmBuyStocks(String sellerOrderNo, String debitAuthCode, String txnAmount, String txnCurrency){
+    @Transactional
+    public boolean confirmBuyStocks(String sellerOrderNo, String debitAuthCode, String txnAmount, String txnCurrency) {
 
-        String sellerOrderNoBeforeSplit=sellerOrderNo;
-         int indexOfB = sellerOrderNoBeforeSplit.indexOf("B");
-         String user_id= sellerOrderNoBeforeSplit.substring(0,indexOfB);
-         int partBeforeUnderscore=sellerOrderNoBeforeSplit.indexOf("_");
-         String sellerOrderNumber=sellerOrderNoBeforeSplit.substring(0,partBeforeUnderscore);
+        String sellerOrderNoBeforeSplit = sellerOrderNo;
+        int indexOfB = sellerOrderNoBeforeSplit.indexOf("B");
+        String user_id = sellerOrderNoBeforeSplit.substring(0, indexOfB);
+        int partBeforeUnderscore = sellerOrderNoBeforeSplit.indexOf("_");
+        String sellerOrderNumber = sellerOrderNoBeforeSplit.substring(0, partBeforeUnderscore);
 
 
-    String  actualSellerOrderNo = sellerOrderNumber;
-    String  fpxDebitAuthCode = debitAuthCode;
-    Long userId=Long.parseLong(user_id);
+        String actualSellerOrderNo = sellerOrderNumber;
+        String fpxDebitAuthCode = debitAuthCode;
+        Long userId = Long.parseLong(user_id);
 
-    Optional<ConfirmBuyStocks> stockDataRegistered= confirmBuyStocksRepo.findBySellerOrderNoAndUserId(actualSellerOrderNo,userId);
+        Optional<ConfirmBuyStocks> stockDataRegistered = confirmBuyStocksRepo.findBySellerOrderNoAndUserId(actualSellerOrderNo, userId);
 
-    if(stockDataRegistered.isEmpty()){
-        System.out.println("\ndue no data");
-        ConfirmBuyStocks cnfrmstocks=stockDataRegistered.get();
-        System.out.println(cnfrmstocks.getStockName());
-        return false;
+        if (stockDataRegistered.isEmpty()) {
+            System.out.println("\ndue no data");
+            ConfirmBuyStocks cnfrmstocks = stockDataRegistered.get();
+            System.out.println(cnfrmstocks.getStockName());
+            return false;
 //        return ResponseEntity.badRequest().body(Map.of("message","Details not found in the database regarding the stock you're requesting to buy."));
-    }
+        }
 
 
+        if (!fpxDebitAuthCode.equals("00")) {
 
+            System.out.println("\ndue to debitauthcode");
 
-    if(!fpxDebitAuthCode.equals("00")){
+            return false;
 
-        System.out.println("\ndue to debitauthcode");
+        }
+        ConfirmBuyStocks confirmStocksForDeductions = stockDataRegistered.get();
 
-        return false;
+        String stockName = confirmStocksForDeductions.getStockName();
+        int stockQuantity = confirmStocksForDeductions.getStockQuantity();
+        String currentUserEmail = confirmStocksForDeductions.getUserMail();
 
-    }
-    ConfirmBuyStocks confirmStocksForDeductions=stockDataRegistered.get();
+        Optional<UsersCredentials> chosenUser = userCredentialsRepo.findById(userId);
 
-    String stockName=confirmStocksForDeductions.getStockName();
-    int stockQuantity=confirmStocksForDeductions.getStockQuantity();
-    String currentUserEmail=confirmStocksForDeductions.getUserMail();
-
-    Optional<UsersCredentials> chosenUser=userCredentialsRepo.findById(userId);
-
-    if (chosenUser.isEmpty()) {
-        System.out.println("\ndue to user not found");
-        return false;
+        if (chosenUser.isEmpty()) {
+            System.out.println("\ndue to user not found");
+            return false;
 //        return ResponseEntity.badRequest().body(Map.of("message","Buyer Not Found"));
-    }
+        }
 
-    UsersCredentials customer = chosenUser.get();
+        UsersCredentials customer = chosenUser.get();
 
-    String accountPIN = userAccountRepo.findAccountPasswordByUserId(userId);
+        String accountPIN = userAccountRepo.findAccountPasswordByUserId(userId);
 
 
-    Optional<UsersAccount> buyersAccount = userAccountRepo.findAccountByUserId(userId);
-    if (buyersAccount.isEmpty()) {
-        System.out.println("\ndue to user account not found");
-        return false;
+        Optional<UsersAccount> buyersAccount = userAccountRepo.findAccountByUserId(userId);
+        if (buyersAccount.isEmpty()) {
+            System.out.println("\ndue to user account not found");
+            return false;
 //        return ResponseEntity.badRequest().body(Map.of("message","No such user is found."));
-    }
+        }
 
-    UsersAccount buyerAccount = buyersAccount.get();
+        UsersAccount buyerAccount = buyersAccount.get();
 
-    Optional<Stocks> stocks = stocksRepo.findByStockName(stockName);
-    if (stocks.isEmpty()) {
-        System.out.println("\ndue to stock not found");
-        return false;
+        Optional<Stocks> stocks = stocksRepo.findByStockName(stockName);
+        if (stocks.isEmpty()) {
+            System.out.println("\ndue to stock not found");
+            return false;
 //        return ResponseEntity.badRequest().body(Map.of("message","Stock not found."));
-    }
+        }
 
-    Stocks stock = stocks.get();
-    int availableStock = stock.getTotalStocks();
-    int requestedQuantity = stockQuantity;
-    if ( requestedQuantity<0 ) {
-        System.out.println("\ndue to negative value entered as quantity");
-        return false;
+        Stocks stock = stocks.get();
+        int availableStock = stock.getTotalStocks();
+        int requestedQuantity = stockQuantity;
+        if (requestedQuantity < 0) {
+            System.out.println("\ndue to negative value entered as quantity");
+            return false;
 //        return ResponseEntity.badRequest().body(Map.of("message","Entered value is negative.Warning not allowed option!"));
-    }
+        }
 
-    if (availableStock < requestedQuantity) {
+        if (availableStock < requestedQuantity) {
 
-        System.out.println("\ndue to less quantity available");
-        return false;
+            System.out.println("\ndue to less quantity available");
+            return false;
 //        return ResponseEntity.badRequest().body(Map.of("message","Entered quantity is larger than the available."));
-    }
+        }
 
-    BigDecimal askedQuantity = BigDecimal.valueOf(requestedQuantity);
-    BigDecimal currentStockPrice = stocksRepo.getInstantStockPrice(stockName);
-    BigDecimal subtotal = askedQuantity.multiply(currentStockPrice);
+        BigDecimal askedQuantity = BigDecimal.valueOf(requestedQuantity);
+        BigDecimal currentStockPrice = stocksRepo.getInstantStockPrice(stockName);
+        BigDecimal subtotal = askedQuantity.multiply(currentStockPrice);
 
-    BigDecimal brokerage = subtotal.multiply(BigDecimal.valueOf(0.005));
-    if (brokerage.compareTo(BigDecimal.valueOf(20)) > 0) {
-        brokerage = BigDecimal.valueOf(20);
-    }
+        BigDecimal brokerage = subtotal.multiply(BigDecimal.valueOf(0.005));
+        if (brokerage.compareTo(BigDecimal.valueOf(20)) > 0) {
+            brokerage = BigDecimal.valueOf(20);
+        }
 
 
-    BigDecimal exchangeCharges = subtotal.multiply(BigDecimal.valueOf(0.0000345));
-    BigDecimal gst = (brokerage.add(exchangeCharges)).multiply(BigDecimal.valueOf(0.18));
-    BigDecimal total = subtotal.add(brokerage).add(exchangeCharges).add(gst);
+        BigDecimal exchangeCharges = subtotal.multiply(BigDecimal.valueOf(0.0000345));
+        BigDecimal gst = (brokerage.add(exchangeCharges)).multiply(BigDecimal.valueOf(0.18));
+        BigDecimal total = subtotal.add(brokerage).add(exchangeCharges).add(gst);
 
-    System.out.println("total: " + total + " subtotal: " + subtotal);
-    BigDecimal nowBalance = userAccountRepo.getAccountBalance(userId);
-    System.out.println("CURRENTBALANCE: " + nowBalance);
+        System.out.println("total: " + total + " subtotal: " + subtotal);
+        BigDecimal nowBalance = userAccountRepo.getAccountBalance(userId);
+        System.out.println("CURRENTBALANCE: " + nowBalance);
 
-    if (nowBalance.compareTo(total) < 0 ) {
+        if (nowBalance.compareTo(total) < 0) {
 
-        System.out.println("\ndue to insufficient balance");
-        return false;
+            System.out.println("\ndue to insufficient balance");
+            return false;
 
 //        return ResponseEntity.badRequest().body(Map.of("message","Insufficient Balance!"));
-    }
+        }
 
 
-
-
-
-        BigDecimal nowChangedBalance=nowBalance.subtract(total);
+        BigDecimal nowChangedBalance = nowBalance.subtract(total);
         buyerAccount.setUserAccountBalance(nowChangedBalance);
         BigDecimal currentBalance = nowChangedBalance;
         stock.setTotalStocks(stock.getTotalStocks() - requestedQuantity);
-
 
 
         Optional<Havings> holdingsTaken = holdingsRepo.findByStockNameAndEmail(stock.getStockName(), currentUserEmail);
@@ -348,7 +336,7 @@ public boolean confirmBuyStocks(String sellerOrderNo, String debitAuthCode, Stri
         holdingsRepo.save(holdings);
 
         TransactionsHistory transaction = new TransactionsHistory();
-        System.out.println("/n/n/n/n"+stock.getStockName()+stock.getStocksImage()+total+currentUserEmail);
+        System.out.println("/n/n/n/n" + stock.getStockName() + stock.getStocksImage() + total + currentUserEmail);
         transaction.setStockName(stock.getStockName());
         transaction.setStockImage(stock.getStocksImage());
         transaction.setAmountCameInOrGoneOut(total);
@@ -357,7 +345,7 @@ public boolean confirmBuyStocks(String sellerOrderNo, String debitAuthCode, Stri
 
 
         UsersAccountHistory history = new UsersAccountHistory();
-        System.out.println(currentBalance+" "+total+" "+history.getCurrentIndianTime()+" "+currentUserEmail);
+        System.out.println(currentBalance + " " + total + " " + history.getCurrentIndianTime() + " " + currentUserEmail);
         history.setCurrentAccountBalance(currentBalance);
         history.setAmountTransacted(total);
         history.setAmountTransactedTime(history.getCurrentIndianTime());
@@ -379,12 +367,11 @@ public boolean confirmBuyStocks(String sellerOrderNo, String debitAuthCode, Stri
     }
 
 
+    public String generateSellerOrderNo() {
 
-        public String generateSellerOrderNo() {
-
-            String timestamp = new java.text.SimpleDateFormat("yyyyMMddHHmmssSSS").format(new java.util.Date());
-            return  timestamp ;
-        }
+        String timestamp = new java.text.SimpleDateFormat("yyyyMMddHHmmssSSS").format(new java.util.Date());
+        return timestamp;
+    }
 
     public static String encryptPayload(String minifiedString, String param1, String param2) {
         try {
@@ -412,7 +399,6 @@ public boolean confirmBuyStocks(String sellerOrderNo, String debitAuthCode, Stri
             return null;
         }
     }
-
 
 
 }
